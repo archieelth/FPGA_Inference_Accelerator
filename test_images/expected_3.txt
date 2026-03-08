@@ -1,0 +1,2 @@
+True label: 0
+Fixed-point prediction: 0

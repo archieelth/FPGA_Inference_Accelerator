@@ -1,0 +1,2 @@
+True label: 7
+Fixed-point prediction: 7

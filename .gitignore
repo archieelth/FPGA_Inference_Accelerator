@@ -1,0 +1,24 @@
+# MNIST dataset — too large for git
+data/
+
+# Verilator build output
+obj_dir/
+
+# Waveform dumps
+wave.vcd
+*.vcd
+
+# Generated at runtime
+generated_images/
+debug_trace.txt
+
+# GTKWave source (system install used instead)
+gtkwave/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
