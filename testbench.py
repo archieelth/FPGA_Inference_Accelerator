@@ -4,18 +4,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import os
+import time
+
 
 # ============================================================
-# CONFIGURATION — change these two lines to switch models
-# MODEL_DIR must match a folder inside models/ and the
-# HIDDEN_NODES parameter in network.sv
-# ============================================================
-MODEL_DIR   = "models/hidden64"   # ← path to weights/biases
-HIDDEN_SIZE = 64                  # ← hidden neurons in this model
-NUM_IMAGES  = 20                  # ← how many images to test
+MODEL_DIR   = "models/hidden64"   #  path to weights & biases
+HIDDEN_SIZE = 64                  #  hidden neurons in this model
+NUM_IMAGES  = 20                  #  how many images to test
 # ============================================================
 
-# ── Fixed-point config (must match SV) ──────────────────────────────────────
+# ── Fixed-point config (must match SV) 
+
 DATAWIDTH = 16
 FRAC      = 13
 SCALE     = 1 << FRAC
@@ -47,7 +46,7 @@ def pixels_to_hex_file(pixels_uint8, path):
             val = float_to_fixed(int(p) / 255.0) & 0xFFFF
             f.write(f"{val:04x}\n")
 
-# ── Load weights from MODEL_DIR ──────────────────────────────────────────────
+# ── Load weights from MODEL_DIR 
 def load_model(model_dir, hidden_size):
     W1_q = np.zeros((hidden_size, 784), dtype=np.int64)
     b1_q = np.zeros(hidden_size,        dtype=np.int64)
@@ -63,7 +62,7 @@ def load_model(model_dir, hidden_size):
 
     return W1_q, b1_q, W2_q, b2_q
 
-# ── Bit-accurate fixed-point inference (mirrors SV exactly) ─────────────────
+# ── Bit-accurate fixed-point inference (mirrors SV exactly) 
 def infer_fixed(W1_q, b1_q, W2_q, b2_q, X_q):
     hidden_size = W1_q.shape[0]
 
@@ -89,7 +88,7 @@ def infer_fixed(W1_q, b1_q, W2_q, b2_q, X_q):
 
     return int(np.argmax(A2))
 
-# ── Run hardware simulation for one image ────────────────────────────────────
+# Run hardware simulation for one image 
 def run_hw(image_hex_path, model_dir):
     result = subprocess.run(
         ["./obj_dir/Vnetwork",
@@ -102,7 +101,7 @@ def run_hw(image_hex_path, model_dir):
             return int(line.split(":")[1].strip())
     return None
 
-# ── Get image + label for a given index ─────────────────────────────────────
+# ── Get image & label for a given index 
 GEN_DIR = "generated_images"
 
 def get_image(idx, csv_data):
@@ -130,7 +129,7 @@ def get_image(idx, csv_data):
 
     return hex_path, X_q, label, pixels
 
-# ── Visualization ────────────────────────────────────────────────────────────
+# ── Visualization 
 def plot_results(results, model_dir, output_path="results.png"):
     n     = len(results)
     ncols = min(n, 5)
@@ -178,7 +177,7 @@ def plot_results(results, model_dir, output_path="results.png"):
     print(f"\nSaved figure → {output_path}")
     plt.show()
 
-# ── Main testbench ───────────────────────────────────────────────────────────
+# ── Main testbench 
 if __name__ == "__main__":
     print(f"Model : {MODEL_DIR}  (hidden={HIDDEN_SIZE})")
     print("Loading weights...")
@@ -197,12 +196,22 @@ if __name__ == "__main__":
     py_correct  = 0
     hw_py_match = 0
     results     = []
+    hw_total    = 0.0
+    py_total    = 0.0
 
     for idx in range(NUM_IMAGES):
         hex_path, X_q, label, pixels = get_image(idx, csv_data)
 
+        t0 = time.perf_counter()
         hw_pred = run_hw(hex_path, MODEL_DIR)
+        hw_time = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         py_pred = infer_fixed(W1_q, b1_q, W2_q, b2_q, X_q)
+        py_time = time.perf_counter() - t0
+
+        hw_total += hw_time
+        py_total += py_time
 
         hw_ok = hw_pred == label
         py_ok = py_pred == label
@@ -216,13 +225,18 @@ if __name__ == "__main__":
         hw_str = str(hw_pred) if hw_pred is not None else "TIMEOUT"
         print(f"{idx:>4}  {label:>5}  {hw_str:>4}  {py_pred:>4}  "
               f"{'YES' if hw_ok else 'NO':>10}  {'YES' if py_ok else 'NO':>10}  "
-              f"{'YES' if match else 'NO':>7}")
+              f"{'YES' if match else 'NO':>7}  "
+              f"HW:{hw_time*1000:6.1f}ms  PY:{py_time*1000:6.2f}ms")
 
     print("-" * 62)
     print(f"\nSummary over {NUM_IMAGES} images ({MODEL_DIR}):")
     print(f"  HW  accuracy : {hw_correct}/{NUM_IMAGES} ({100*hw_correct/NUM_IMAGES:.1f}%)")
     print(f"  PY  accuracy : {py_correct}/{NUM_IMAGES} ({100*py_correct/NUM_IMAGES:.1f}%)")
     print(f"  HW == PY     : {hw_py_match}/{NUM_IMAGES} ({100*hw_py_match/NUM_IMAGES:.1f}%)")
+    print(f"\nTiming over {NUM_IMAGES} images:")
+    print(f"  HW avg (sim + process spawn) : {hw_total/NUM_IMAGES*1000:.1f} ms")
+    print(f"  PY avg (fixed-point Python)  : {py_total/NUM_IMAGES*1000:.2f} ms")
+    print(f"  Note: HW time includes OS process overhead (~10-50ms per run)")
 
     model_name = MODEL_DIR.replace("/", "_").replace("models_", "")
     plot_results(results, MODEL_DIR, output_path=f"results_{model_name}.png")

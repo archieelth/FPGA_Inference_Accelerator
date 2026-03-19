@@ -97,9 +97,9 @@ def gradient_descent(X, Y, alpha, iterations):
 # After training, change HIDDEN_NODES in network.sv to match,
 # then recompile Verilator and set MODEL_DIR in testbench.py.
 # ============================================================
-HIDDEN_SIZE = 64   # ← e.g. 10, 32, 64, 128
+HIDDEN_SIZE = 64   
 MODEL_DIR   = f"models/hidden{HIDDEN_SIZE}"
-# ============================================================
+
 
 # Train the model
 W1, b1, W2, b2 = gradient_descent(X_train, Y_train, alpha=0.15, iterations=601)
@@ -179,18 +179,14 @@ def fixed_inference(W1_fixed, b1_fixed, W2_fixed, b2_fixed, X_fixed):
     
     return prediction, A1_fixed, A2_fixed
 
-# ============================================================
 # Convert weights and biases to fixed-point
-# ============================================================
 
 W1_fixed = np.array([[to_fixed_16(w) for w in neuron] for neuron in W1], dtype=np.int16)
 b1_fixed = np.array([to_fixed_16(b[0]) for b in b1], dtype=np.int16)
 W2_fixed = np.array([[to_fixed_16(w) for w in neuron] for neuron in W2], dtype=np.int16)
 b2_fixed = np.array([to_fixed_16(b[0]) for b in b2], dtype=np.int16)
 
-# ============================================================
 # Test and compare: Float vs Fixed-point
-# ============================================================
 
 print("\n" + "="*60)
 print("TESTING: Float-point vs Fixed-point Inference")
@@ -242,9 +238,8 @@ print(f"\n" + "="*60)
 print(f"Agreement: {matches}/{num_tests} ({100*matches/num_tests:.1f}%)")
 print("="*60)
 
-# ============================================================
+#
 # Analyze quantization errors
-# ============================================================
 
 print("\n" + "="*60)
 print("QUANTIZATION ERROR ANALYSIS")
@@ -268,9 +263,7 @@ if W1_clipped > 0 or W2_clipped > 0:
     print("   - Training with weight regularization")
     print("   - Scaling weights down")
 
-# ============================================================
 # Export files for hardware
-# ============================================================
 
 print("\n" + "="*60)
 print("EXPORTING FOR HARDWARE")
@@ -323,9 +316,7 @@ for idx in range(10):
 print("✓ Exported weights, biases, and test images")
 print(f"✓ Created {num_tests} test images in test_images/")
 
-# ============================================================
 # Generate detailed trace for debugging (first image only)
-# ============================================================
 
 print("\n" + "="*60)
 print("GENERATING DEBUG TRACE FOR HARDWARE VERIFICATION")
