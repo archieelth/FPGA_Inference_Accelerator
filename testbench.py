@@ -13,7 +13,7 @@ HIDDEN_SIZE = 64                  #  hidden neurons in this model
 NUM_IMAGES  = 20                  #  how many images to test
 # ============================================================
 
-# ── Fixed-point config (must match SV) 
+#  Fixed-point config (must match SV) 
 
 DATAWIDTH = 16
 FRAC      = 13
@@ -46,7 +46,7 @@ def pixels_to_hex_file(pixels_uint8, path):
             val = float_to_fixed(int(p) / 255.0) & 0xFFFF
             f.write(f"{val:04x}\n")
 
-# ── Load weights from MODEL_DIR 
+#  Load weights from MODEL_DIR 
 def load_model(model_dir, hidden_size):
     W1_q = np.zeros((hidden_size, 784), dtype=np.int64)
     b1_q = np.zeros(hidden_size,        dtype=np.int64)
@@ -62,7 +62,7 @@ def load_model(model_dir, hidden_size):
 
     return W1_q, b1_q, W2_q, b2_q
 
-# ── Bit-accurate fixed-point inference (mirrors SV exactly) 
+#  Bit-accurate fixed-point inference (mirrors SV exactly) 
 def infer_fixed(W1_q, b1_q, W2_q, b2_q, X_q):
     hidden_size = W1_q.shape[0]
 
@@ -101,7 +101,7 @@ def run_hw(image_hex_path, model_dir):
             return int(line.split(":")[1].strip())
     return None
 
-# ── Get image & label for a given index 
+#  Get image & label for a given index 
 GEN_DIR = "generated_images"
 
 def get_image(idx, csv_data):
@@ -129,7 +129,7 @@ def get_image(idx, csv_data):
 
     return hex_path, X_q, label, pixels
 
-# ── Visualization 
+#  Visualization 
 def plot_results(results, model_dir, output_path="results.png"):
     n     = len(results)
     ncols = min(n, 5)

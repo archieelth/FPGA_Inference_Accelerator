@@ -4,7 +4,7 @@
 //
 //   HIDDEN_NODES  — number of neurons in the hidden layer
 //                   e.g. 10 (current), 32, 64, 128
-//                   ⚠ must also retrain weights in fixedtest.py
+//                    must also retrain weights in fixedtest.py
 //
 //   NUMWEIGHTL1   — number of inputs (pixels). 784 for 28x28 MNIST.
 //                   Only change if using a different dataset.
